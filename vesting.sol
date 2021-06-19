@@ -206,8 +206,8 @@ contract TokenVesting is Ownable {
 
   uint256 public cliff;
   uint256 public start;
-  uint256 public duration;
-  uint256 public interval;
+  uint256 public duration = 63072000;
+  uint256 public interval = 2628002;
 
   //uint256 public constant ReleaseCap = 150000000000000000000000000;
 
@@ -225,23 +225,21 @@ contract TokenVesting is Ownable {
    * of the balance will have vested.
    * @param _cliff duration in seconds of the cliff in which tokens will begin to vest
    * @param _start the time (as Unix time) at which point vesting starts
-   * @param _duration duration in seconds of the period in which the tokens will vest (2 years)
-   * @param _interval amount time in seconds between successive token vesting (1 month)
    */
   constructor(
     uint256 _start,
-    uint256 _cliff,
-    uint256 _duration,
-    uint256 _interval
+    uint256 _cliff
+   // uint256 _duration,
+    // uint256 _interval
   )
     public
   {
-    require(_cliff <= _duration);
+    require(_cliff <= duration);
 
-    duration = _duration;
+   // duration = _duration;
     cliff = _start.add(_cliff);
     start = _start;
-    interval = _interval;
+    //interval = _interval;
   }
 
   modifier onlyMember(address _memberAddress) {
