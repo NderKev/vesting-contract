@@ -153,7 +153,7 @@ contract Ownable {
    * @dev Throws if called by any account other than the owner.
    */
   modifier onlyOwner() {
-    require(msg.sender == owner);
+    require(msg.sender == owner, "Only owner can call the function");
     _;
   }
 
@@ -206,8 +206,8 @@ contract TokenVesting is Ownable {
 
   uint256 public cliff;
   uint256 public start;
-  uint256 public duration = 86400;//63072000;
-  uint256 public interval = 3600;//2628000
+  uint256 public duration = 14400;//86400;//63072000;
+  uint256 public interval = 600;//3600;//2628000
 
   //uint256 public constant ReleaseCap = 150000000000000000000000000;
 
@@ -276,33 +276,30 @@ contract TokenVesting is Ownable {
 
   /**
    * @notice Transfers vested tokens to beneficiary.
-   * @param _member ERC20  the investor to recieve the vested tokens
+   * @param _member   the investor to recieve the vested tokens
    */
-  function release(address _member) onlyOwner onlyMember(_member) public {
+  function release(address _member) public onlyOwner {
     uint256 unreleased = releasableAmount();
     uint256 _amountToSend = amountInvested[_member];
-    require(unreleased > 0);
-    require( _amountToSend > 0);
+    require(unreleased > 0, "Inadequate amount to release");
+    require( _amountToSend > 0, "Insufficient invested amount");
     require(numReleases[_member] <= Releases);
+    uint256 timeNow = cliff.add(interval);
     if (numReleases[_member] == 0){
-    require(block.timestamp >= interval.add(cliff));
+    require(block.timestamp >= timeNow, "Not yet the next release");
      released = released.add(_amountToSend);
-     //unreleased = ReleaseCap.div(noOfMembers.mul(Releases));
-     //unreleased =  unreleased.div(noOfMembers);
      _token.transfer(_member, _amountToSend);
      numReleases[_member] = numReleases[_member].add(1);
-     nextRelease[_member] = interval.add(cliff).add(interval);
-     amountInvested[_member] = amountInvested[_member].sub(_amountToSend);
+     nextRelease[_member] = cliff.add(interval).add(interval);
+     amountInvested[_member] = 0;
    }
    else if (numReleases[_member] > 0){
      require(block.timestamp >= nextRelease[_member]);
      released = released.add(_amountToSend);
-     //unreleased = ReleaseCap.div(noOfMembers.mul(Releases));
-     //unreleased =  unreleased.div(noOfMembers);
      _token.transfer(_member, _amountToSend);
      numReleases[_member] = numReleases[_member].add(1);
      nextRelease[_member] = nextRelease[_member].add(interval);
-     amountInvested[_member] = amountInvested[_member].sub(_amountToSend);
+     amountInvested[_member] = 0;
    }
 
     emit Released(_amountToSend);
@@ -324,7 +321,7 @@ contract TokenVesting is Ownable {
     uint256 totalBalance = currentBalance.add(released);
 
     if (block.timestamp < cliff) {
-      return 0;
+      return currentBalance;
     } else if (block.timestamp >= start.add(duration)) {
       return totalBalance;
     } else {
