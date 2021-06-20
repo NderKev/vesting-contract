@@ -215,6 +215,7 @@ contract TokenVesting is Ownable {
   mapping (address =>uint) public numReleases;
   mapping (address => uint) public nextRelease;
   mapping (address => uint) public amountInvested;
+  IERC20 public _token;
   uint256 public noOfMembers;
   uint256 public released;
   //uint256 public standardQuantity;
@@ -225,11 +226,12 @@ contract TokenVesting is Ownable {
    * of the balance will have vested.
    * @param _cliff duration in seconds of the cliff in which tokens will begin to vest
    * @param _start the time (as Unix time) at which point vesting starts
+   * @param token to be vested
    */
   constructor(
     uint256 _start,
-    uint256 _cliff
-   // uint256 _duration,
+    uint256 _cliff,
+    IERC20 token
     // uint256 _interval
   )
     public
@@ -239,6 +241,7 @@ contract TokenVesting is Ownable {
    // duration = _duration;
     cliff = _start.add(_cliff);
     start = _start;
+    _token = token;
     //interval = _interval;
   }
 
@@ -259,8 +262,8 @@ contract TokenVesting is Ownable {
       noOfMembers = noOfMembers.sub(1);
   }
 
-  function purchaseTokens (address _investor, uint256 _tokens, IERC20 _token) public onlyMember(_investor){
-    uint256 unreleased = releasableAmount(_token);
+  function purchaseTokens (address _investor, uint256 _tokens) public onlyMember(_investor){
+    uint256 unreleased = releasableAmount();
     require(unreleased > 0);
     if (amountInvested[_investor] == 0){
       amountInvested[_investor] = _tokens;
@@ -273,17 +276,16 @@ contract TokenVesting is Ownable {
 
   /**
    * @notice Transfers vested tokens to beneficiary.
-   * @param _token ERC20  token which is being vested
+   * @param _member ERC20  the investor to recieve the vested tokens
    */
-  function release(IERC20 _token, address _member) onlyOwner public {
-    uint256 unreleased = releasableAmount(_token);
+  function release(address _member) onlyOwner onlyMember(_member) public {
+    uint256 unreleased = releasableAmount();
     uint256 _amountToSend = amountInvested[_member];
     require(unreleased > 0);
     require( _amountToSend > 0);
     require(numReleases[_member] <= Releases);
     if (numReleases[_member] == 0){
     require(block.timestamp >= interval.add(cliff));
-
      released = released.add(_amountToSend);
      //unreleased = ReleaseCap.div(noOfMembers.mul(Releases));
      //unreleased =  unreleased.div(noOfMembers);
@@ -309,17 +311,15 @@ contract TokenVesting is Ownable {
 
   /**
    * @dev Calculates the amount that has already vested but hasn't been released yet.
-   * @param _token ERC20 token which is being vested
    */
-  function releasableAmount(IERC20 _token) public view returns (uint256) {
-    return vestedAmount(_token).sub(released);
+  function releasableAmount() public view returns (uint256) {
+    return vestedAmount().sub(released);
   }
 
   /**
    * @dev Calculates the amount that has already vested.
-   * @param _token ERC20 Token which is being vested
    */
-  function vestedAmount(IERC20 _token) public view returns (uint256) {
+  function vestedAmount() public view returns (uint256) {
     uint256 currentBalance = _token.balanceOf(owner);
     uint256 totalBalance = currentBalance.add(released);
 
