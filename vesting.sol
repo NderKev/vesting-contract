@@ -206,8 +206,8 @@ contract TokenVesting is Ownable {
 
   uint256 public cliff;
   uint256 public start;
-  uint256 public duration = 63072000;
-  uint256 public interval = 2628002;
+  uint256 public duration = 86400;//63072000;
+  uint256 public interval = 3600;//2628000
 
   //uint256 public constant ReleaseCap = 150000000000000000000000000;
 
@@ -275,7 +275,7 @@ contract TokenVesting is Ownable {
    * @notice Transfers vested tokens to beneficiary.
    * @param _token ERC20  token which is being vested
    */
-  function release(IERC20 _token, address _member) onlyMember(_member) public {
+  function release(IERC20 _token, address _member) onlyOwner public {
     uint256 unreleased = releasableAmount(_token);
     uint256 _amountToSend = amountInvested[_member];
     require(unreleased > 0);
@@ -320,7 +320,7 @@ contract TokenVesting is Ownable {
    * @param _token ERC20 Token which is being vested
    */
   function vestedAmount(IERC20 _token) public view returns (uint256) {
-    uint256 currentBalance = _token.balanceOf(address(this));
+    uint256 currentBalance = _token.balanceOf(owner);
     uint256 totalBalance = currentBalance.add(released);
 
     if (block.timestamp < cliff) {
@@ -328,7 +328,7 @@ contract TokenVesting is Ownable {
     } else if (block.timestamp >= start.add(duration)) {
       return totalBalance;
     } else {
-      return totalBalance.mul(block.timestamp.sub(start)).div(duration);
+      return  currentBalance;
     }
   }
 }
